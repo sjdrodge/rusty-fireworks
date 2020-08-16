@@ -12,4 +12,4 @@ license = "GPL-3.0-or-later"
 
 [dependencies]
 tokio = { version = "0.2", features = ["full"] }
-warp = "0.2"
+tokio-tungstenite = "0.10"
