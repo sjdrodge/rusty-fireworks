@@ -12,15 +12,15 @@ use tokio::sync::watch;
 use tokio::sync::RwLock;
 
 use super::events::EventSinkCtx;
-use super::Session;
+use super::State;
 
 pub type SessionKindMap = RwLock<HashMap<TypeId, Arc<dyn Any + 'static + Sync + Send>>>;
 
-pub struct EventSinkEntry<T: Session> {
+pub struct EventSinkEntry<T: State> {
     rx: watch::Receiver<Option<EventSinkCtx<T>>>,
 }
 
-impl<T: Session> Clone for EventSinkEntry<T> {
+impl<T: State> Clone for EventSinkEntry<T> {
     fn clone(&self) -> Self {
         EventSinkEntry {
             rx: self.rx.clone(),
@@ -28,7 +28,7 @@ impl<T: Session> Clone for EventSinkEntry<T> {
     }
 }
 
-impl<T: Session> EventSinkEntry<T> {
+impl<T: State> EventSinkEntry<T> {
     pub fn new(rx: watch::Receiver<Option<EventSinkCtx<T>>>) -> Self {
         EventSinkEntry { rx }
     }
@@ -50,9 +50,9 @@ impl<T: Session> EventSinkEntry<T> {
     }
 }
 
-pub type EventSinkMap<T> = RwLock<HashMap<<T as Session>::Key, EventSinkEntry<T>>>;
+pub type EventSinkMap<T> = RwLock<HashMap<<T as State>::Key, EventSinkEntry<T>>>;
 
-async fn try_get_event_sink_map<T: Session>(
+async fn try_get_event_sink_map<T: State>(
     map: &'static SessionKindMap,
 ) -> Result<Arc<EventSinkMap<T>>, ()> {
     let locked = map.read().await;
@@ -62,7 +62,7 @@ async fn try_get_event_sink_map<T: Session>(
         .ok_or(())
 }
 
-async fn create_event_sink_map<T: Session>(
+async fn create_event_sink_map<T: State>(
     map: &'static SessionKindMap,
 ) -> Result<Arc<EventSinkMap<T>>, Never> {
     let event_sink_map = {
@@ -84,11 +84,11 @@ async fn create_event_sink_map<T: Session>(
 
 static SESSION_KIND_MAP: Lazy<SessionKindMap> = Lazy::new(Default::default);
 
-pub async fn get_event_sink_map<T: Session>() -> Arc<EventSinkMap<T>> {
+pub async fn get_event_sink_map<T: State>() -> Arc<EventSinkMap<T>> {
     try_get_event_sink_map(&SESSION_KIND_MAP).await.unwrap()
 }
 
-pub async fn get_or_create_event_sink_map<T: Session>() -> Arc<EventSinkMap<T>> {
+pub async fn get_or_create_event_sink_map<T: State>() -> Arc<EventSinkMap<T>> {
     try_get_event_sink_map(&SESSION_KIND_MAP)
         .or_else(|_| create_event_sink_map(&SESSION_KIND_MAP))
         .await
