@@ -61,7 +61,7 @@ pub use conn::Connect;
 
 #[async_trait]
 pub trait Handler: 'static + Sized {
-    async fn handle_open(&mut self);
+    async fn handle_open(&mut self) -> anyhow::Result<()>;
     async fn handle_close(&mut self);
     async fn handle_message(&mut self, msg: Message);
 }

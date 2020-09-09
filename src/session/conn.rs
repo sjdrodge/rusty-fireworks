@@ -154,7 +154,9 @@ where
         };
 
         // TODO do this with a message to differentiate between handoff and open
-        session.handle_open().await;
+        if let Err(e) = session.handle_open().await {
+            error!("Error in handle_open for {:?}: {}", id, e);
+        }
 
         let fut = session.process_events(msg_stream, event_stream, map_updater);
 
