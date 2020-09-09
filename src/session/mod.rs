@@ -25,8 +25,8 @@ use tokio::pin;
 use tokio::sync::watch;
 use tokio::sync::Notify;
 use tokio_tungstenite::WebSocketStream;
-use tungstenite::error::Error as WsError;
-use tungstenite::protocol::Message;
+use tokio_tungstenite::tungstenite::error::Error as WsError;
+use tokio_tungstenite::tungstenite::protocol::Message;
 
 use self::events::Event;
 use self::events::EventPipe;

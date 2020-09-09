@@ -2,7 +2,7 @@ use std::fmt;
 
 use async_trait::async_trait;
 use log::info;
-use tungstenite::protocol::Message;
+use tokio_tungstenite::tungstenite::protocol::Message;
 
 use crate::session::MessageSink;
 use crate::session::Session;

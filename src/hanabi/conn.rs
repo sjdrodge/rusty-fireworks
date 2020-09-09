@@ -9,7 +9,7 @@ use log::info;
 use sha2::Sha256;
 use thiserror::Error;
 use tokio::net::TcpStream;
-use tungstenite::handshake::server::Request;
+use tokio_tungstenite::tungstenite::handshake::server::Request;
 
 use crate::hanabi::session::HanabiSession;
 use crate::hanabi::session::UserId;

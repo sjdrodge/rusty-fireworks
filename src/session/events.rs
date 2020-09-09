@@ -14,7 +14,7 @@ use tokio::sync::mpsc;
 use tokio::sync::oneshot;
 use tokio::sync::watch;
 use tokio::sync::Notify;
-use tungstenite::Message;
+use tokio_tungstenite::tungstenite::Message;
 
 use crate::sync::UnboundedSink;
 
