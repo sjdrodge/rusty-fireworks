@@ -35,9 +35,9 @@ jobs:
           toolchain: stable
           components: clippy
           override: true
-        - uses: actions-rs/cargo@v1
-          with:
-            command: clippy
+      - uses: actions-rs/cargo@v1
+        with:
+          command: clippy
 
   check:
     name: Check
