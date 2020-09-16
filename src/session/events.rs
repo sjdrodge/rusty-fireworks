@@ -14,22 +14,22 @@ use tokio::sync::mpsc;
 use tokio::sync::oneshot;
 use tokio::sync::watch;
 use tokio::sync::Notify;
-use tungstenite::Message;
+use tokio_tungstenite::tungstenite::Message;
 
 use crate::sync::UnboundedSink;
 
 use super::id::SessionId;
 use super::map;
 use super::LifecycleError;
-use super::Session;
+use super::State;
 
-pub enum Event<T: Session> {
+pub enum Event<T: State> {
     Event(T::Message),
     Message(Message),
     Handoff(oneshot::Sender<Option<HandoffPacket<T>>>),
 }
 
-impl<T: Session> fmt::Debug for Event<T> {
+impl<T: State> fmt::Debug for Event<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Event::Event(msg) => f.debug_tuple("Event").field(msg).finish(),
@@ -42,12 +42,12 @@ impl<T: Session> fmt::Debug for Event<T> {
 pub type EventSink<T> = UnboundedSink<Event<T>>;
 pub type EventPipe<T> = (EventSink<T>, EventStream<T>);
 
-pub struct EventStream<T: Session> {
+pub struct EventStream<T: State> {
     key: T::Key,
     stream: mpsc::UnboundedReceiver<Event<T>>,
 }
 
-impl<T: Session> Stream for EventStream<T> {
+impl<T: State> Stream for EventStream<T> {
     type Item = Event<T>;
 
     fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
@@ -60,7 +60,7 @@ impl<T: Session> Stream for EventStream<T> {
     }
 }
 
-impl<T: Session> Drop for EventStream<T> {
+impl<T: State> Drop for EventStream<T> {
     fn drop(&mut self) {
         tokio::task::block_in_place(|| {
             futures::executor::block_on(async move {
@@ -82,21 +82,21 @@ impl<T: Session> Drop for EventStream<T> {
     }
 }
 
-pub fn make_event_pipe<T: Session>(key: T::Key) -> EventPipe<T> {
+pub fn make_event_pipe<T: State>(key: T::Key) -> EventPipe<T> {
     let (sink, stream) = mpsc::unbounded_channel();
     let sink = UnboundedSink::new(sink);
     let stream = EventStream { key, stream };
     (sink, stream)
 }
 
-pub struct EventSinkCtx<T: Session> {
+pub struct EventSinkCtx<T: State> {
     pub id: SessionId,
     pub key: T::Key,
     pub event_sink: EventSink<T>,
     phantom: PhantomData<fn(T)>,
 }
 
-impl<T: Session> Clone for EventSinkCtx<T> {
+impl<T: State> Clone for EventSinkCtx<T> {
     fn clone(&self) -> Self {
         EventSinkCtx {
             id: self.id,
@@ -107,11 +107,11 @@ impl<T: Session> Clone for EventSinkCtx<T> {
     }
 }
 
-impl<T: Session> EventSinkCtx<T> {
-    pub fn new(id: SessionId, session: &T, event_sink: EventSink<T>) -> Self {
+impl<T: State> EventSinkCtx<T> {
+    pub fn new(id: SessionId, state: &T, event_sink: EventSink<T>) -> Self {
         EventSinkCtx {
             id,
-            key: session.get_key(),
+            key: state.get_key(),
             event_sink,
             phantom: PhantomData,
         }
@@ -131,7 +131,7 @@ impl<T: Session> EventSinkCtx<T> {
     }
 }
 
-pub struct HandoffPacket<T: Session> {
+pub struct HandoffPacket<T: State> {
     pub event_stream: EventStream<T>,
     pub map_updater: watch::Sender<Option<EventSinkCtx<T>>>,
     pub handoff_complete: Arc<Notify>,

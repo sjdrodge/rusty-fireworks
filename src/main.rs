@@ -8,11 +8,12 @@ use log::error;
 use log::info;
 use tokio::net::TcpListener;
 
+use crate::hanabi::Hanabi;
+use crate::session::Connect;
+
 mod hanabi;
 mod session;
 mod sync;
-
-use crate::hanabi::conn;
 
 fn init_logging() {
     env_logger::Builder::new()
@@ -38,7 +39,7 @@ async fn main() {
         match listener.accept().await {
             Ok((stream, peer_addr)) => {
                 tokio::spawn(async move {
-                    if let Err(e) = conn::handle_connect(stream).await {
+                    if let Err(e) = Hanabi::start_session(stream).await {
                         error!("Peer {} connection closed: {}", peer_addr, e)
                     }
                 });
